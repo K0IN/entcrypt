@@ -1,0 +1,16 @@
+{
+    "name": "Go",
+    "image": "mcr.microsoft.com/devcontainers/go:2-1.26-trixie",
+    "postCreateCommand": "go version",
+    "features": {
+        "ghcr.io/rails/devcontainer/features/sqlite3": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "qwtel.sqlite-viewer",
+                "golang.go"
+            ]
+        }
+    }
+}

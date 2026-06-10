@@ -1,0 +1,17 @@
+# Ignore generated ent files — hand-written files are schema/, entcrypt_gen.go, and generate.go
+/client.go
+/ent.go
+/enttest/
+/hook/
+/migrate/
+/mutation.go
+/predicate/
+/runtime/
+/runtime.go
+/tx.go
+/user/
+/user.go
+/user_create.go
+/user_delete.go
+/user_query.go
+/user_update.go
