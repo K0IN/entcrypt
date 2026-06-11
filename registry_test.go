@@ -4,9 +4,14 @@ import (
 	"testing"
 )
 
+func resetRegistryForTest() {
+	mu.Lock()
+	entities = nil
+	mu.Unlock()
+}
+
 func TestRegisterAndLookup(t *testing.T) {
-	// Reset state for this test.
-	Reset()
+	resetRegistryForTest()
 
 	Register("User", "email", "ssn")
 	Register("Post", "secret_content")
@@ -23,7 +28,7 @@ func TestRegisterAndLookup(t *testing.T) {
 }
 
 func TestEncryptedFields_Unknown(t *testing.T) {
-	Reset()
+	resetRegistryForTest()
 
 	fields := EncryptedFields("Unknown")
 	if fields != nil {
@@ -32,7 +37,7 @@ func TestEncryptedFields_Unknown(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	Reset()
+	resetRegistryForTest()
 
 	Register("User", "email")
 	Register("Post", "body")
@@ -44,9 +49,7 @@ func TestAll(t *testing.T) {
 }
 
 func TestRegister_MultipleCalls(t *testing.T) {
-	mu.Lock()
-	entities = nil
-	mu.Unlock()
+	resetRegistryForTest()
 
 	Register("User", "email")
 	Register("User", "ssn")
@@ -60,9 +63,7 @@ func TestRegister_MultipleCalls(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	mu.Lock()
-	entities = nil
-	mu.Unlock()
+	resetRegistryForTest()
 
 	t.Run("parallel", func(t *testing.T) {
 		t.Parallel()
