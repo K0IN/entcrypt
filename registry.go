@@ -36,10 +36,3 @@ func All() []Entity {
 	copy(out, entities)
 	return out
 }
-
-// Reset clears the entity registry. This is intended for testing purposes only.
-func Reset() {
-	mu.Lock()
-	entities = nil
-	mu.Unlock()
-}
