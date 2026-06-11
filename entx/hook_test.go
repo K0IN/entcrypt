@@ -35,8 +35,8 @@ type testMutation struct {
 	fields map[string]interface{}
 }
 
-func (m *testMutation) Type() string              { return m.typ }
-func (m *testMutation) Op() ent.Op                 { return ent.OpCreate }
+func (m *testMutation) Type() string { return m.typ }
+func (m *testMutation) Op() ent.Op   { return ent.OpCreate }
 func (m *testMutation) Field(name string) (ent.Value, bool) {
 	v, ok := m.fields[name]
 	return v, ok
@@ -53,21 +53,21 @@ func (m *testMutation) Fields() []string {
 	return names
 }
 
-func (m *testMutation) AddedFields() []string           { return nil }
-func (m *testMutation) AddedField(string) (ent.Value, bool) { return nil, false }
-func (m *testMutation) AddField(string, ent.Value) error    { return nil }
-func (m *testMutation) ClearedFields() []string             { return nil }
-func (m *testMutation) FieldCleared(string) bool            { return false }
-func (m *testMutation) ClearField(string) error             { return nil }
-func (m *testMutation) ResetField(string) error             { return nil }
-func (m *testMutation) AddedEdges() []string                { return nil }
-func (m *testMutation) AddedIDs(string) []ent.Value         { return nil }
-func (m *testMutation) RemovedEdges() []string              { return nil }
-func (m *testMutation) RemovedIDs(string) []ent.Value       { return nil }
-func (m *testMutation) ClearedEdges() []string              { return nil }
-func (m *testMutation) EdgeCleared(string) bool             { return false }
-func (m *testMutation) ClearEdge(string) error              { return nil }
-func (m *testMutation) ResetEdge(string) error              { return nil }
+func (m *testMutation) AddedFields() []string                               { return nil }
+func (m *testMutation) AddedField(string) (ent.Value, bool)                 { return nil, false }
+func (m *testMutation) AddField(string, ent.Value) error                    { return nil }
+func (m *testMutation) ClearedFields() []string                             { return nil }
+func (m *testMutation) FieldCleared(string) bool                            { return false }
+func (m *testMutation) ClearField(string) error                             { return nil }
+func (m *testMutation) ResetField(string) error                             { return nil }
+func (m *testMutation) AddedEdges() []string                                { return nil }
+func (m *testMutation) AddedIDs(string) []ent.Value                         { return nil }
+func (m *testMutation) RemovedEdges() []string                              { return nil }
+func (m *testMutation) RemovedIDs(string) []ent.Value                       { return nil }
+func (m *testMutation) ClearedEdges() []string                              { return nil }
+func (m *testMutation) EdgeCleared(string) bool                             { return false }
+func (m *testMutation) ClearEdge(string) error                              { return nil }
+func (m *testMutation) ResetEdge(string) error                              { return nil }
 func (m *testMutation) OldField(context.Context, string) (ent.Value, error) { return nil, nil }
 
 type failingSetFieldMutation struct {
@@ -75,8 +75,8 @@ type failingSetFieldMutation struct {
 	fields map[string]interface{}
 }
 
-func (m *failingSetFieldMutation) Type() string              { return m.typ }
-func (m *failingSetFieldMutation) Op() ent.Op                 { return ent.OpCreate }
+func (m *failingSetFieldMutation) Type() string { return m.typ }
+func (m *failingSetFieldMutation) Op() ent.Op   { return ent.OpCreate }
 func (m *failingSetFieldMutation) Field(name string) (ent.Value, bool) {
 	v, ok := m.fields[name]
 	return v, ok
@@ -91,7 +91,7 @@ func (m *failingSetFieldMutation) Fields() []string {
 	}
 	return names
 }
-func (m *failingSetFieldMutation) AddedFields() []string           { return nil }
+func (m *failingSetFieldMutation) AddedFields() []string               { return nil }
 func (m *failingSetFieldMutation) AddedField(string) (ent.Value, bool) { return nil, false }
 func (m *failingSetFieldMutation) AddField(string, ent.Value) error    { return nil }
 func (m *failingSetFieldMutation) ClearedFields() []string             { return nil }
@@ -106,7 +106,9 @@ func (m *failingSetFieldMutation) ClearedEdges() []string              { return 
 func (m *failingSetFieldMutation) EdgeCleared(string) bool             { return false }
 func (m *failingSetFieldMutation) ClearEdge(string) error              { return nil }
 func (m *failingSetFieldMutation) ResetEdge(string) error              { return nil }
-func (m *failingSetFieldMutation) OldField(context.Context, string) (ent.Value, error) { return nil, nil }
+func (m *failingSetFieldMutation) OldField(context.Context, string) (ent.Value, error) {
+	return nil, nil
+}
 
 func TestEncryptHookFunc(t *testing.T) {
 	// Register encrypted fields.
@@ -547,7 +549,7 @@ func TestEncryptHookFunc_NextMutateError(t *testing.T) {
 func TestDecrypt_StructWithUnexportedField(t *testing.T) {
 	// Test decrypt with a struct that has unexported fields (can't be set)
 	type User struct {
-		Email string
+		Email  string
 		secret string // unexported field
 	}
 	user := User{Email: "enc:alice@example.com", secret: "hidden"}

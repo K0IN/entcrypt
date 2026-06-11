@@ -30,9 +30,8 @@ func DecryptInterceptor(enc interface{ Decrypt(string) (string, error) }) ent.In
 }
 
 func queryType(q ent.Query) string {
-	const ptrKind = reflect.Ptr
 	t := reflect.TypeOf(q)
-	if t.Kind() == ptrKind {
+	if t.Kind() == reflect.Ptr { // nolint:govet
 		t = t.Elem()
 	}
 	return strings.TrimSuffix(t.Name(), "Query")
