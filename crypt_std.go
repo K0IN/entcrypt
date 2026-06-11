@@ -35,7 +35,8 @@ func (e *Encrypter) Encrypt(plaintext string) (string, error) {
 
 func (e *Encrypter) Decrypt(ciphertext string) (string, error) {
 	if !strings.HasPrefix(ciphertext, headerV1) {
-		return "", fmt.Errorf("entcrypt: unknown or missing encryption header")
+		// No encryption header — treat as plaintext (migration tolerance).
+		return ciphertext, nil
 	}
 	body := ciphertext[len(headerV1):]
 

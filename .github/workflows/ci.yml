@@ -7,6 +7,24 @@ on:
         branches: [ main ]
 
 jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: "1.26"
+                  cache: true
+
+            - name: Build library
+              run: go build ./...
+
+            - name: Build examples/noentc
+              run: cd examples/noentc && go build ./...
+
     lint:
         name: Lint
         runs-on: ubuntu-latest

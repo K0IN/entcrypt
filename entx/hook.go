@@ -105,7 +105,7 @@ func decryptStruct(rv reflect.Value, fields []string, d interface{ Decrypt(strin
 		if c == "" {
 			continue
 		}
-		p, err := d.Decrypt(c)
+		p, err := decryptSecret(d, c)
 		if err != nil {
 			return fmt.Errorf("entx: decrypt %s: %w", f, err)
 		}

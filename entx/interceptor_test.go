@@ -2,6 +2,7 @@ package entx
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"entgo.io/ent"
@@ -73,5 +74,156 @@ func TestQueryType(t *testing.T) {
 	got := queryType(&UserQuery{})
 	if got != "User" {
 		t.Fatalf("got %q, want %q", got, "User")
+	}
+}
+
+func TestDecryptInterceptor_QueryError(t *testing.T) {
+	interceptor := DecryptInterceptor(testDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return nil, fmt.Errorf("query failed")
+	})
+
+	_, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestDecryptInterceptor_SliceOfPointers(t *testing.T) {
+	entcrypt.Register("User", "email")
+
+	interceptor := DecryptInterceptor(testDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return []*struct{ Email string }{
+			{Email: "enc:alice@example.com"},
+			{Email: "enc:bob@example.com"},
+		}, nil
+	})
+
+	v, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	users := v.([]*struct{ Email string })
+	if users[0].Email != "alice@example.com" {
+		t.Fatalf("got %q, want %q", users[0].Email, "alice@example.com")
+	}
+	if users[1].Email != "bob@example.com" {
+		t.Fatalf("got %q, want %q", users[1].Email, "bob@example.com")
+	}
+}
+
+func TestDecryptInterceptor_SliceOfStructs(t *testing.T) {
+	entcrypt.Register("User", "email")
+
+	interceptor := DecryptInterceptor(testDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return []struct{ Email string }{
+			{Email: "enc:alice@example.com"},
+			{Email: "enc:bob@example.com"},
+		}, nil
+	})
+
+	v, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	users := v.([]struct{ Email string })
+	if users[0].Email != "alice@example.com" {
+		t.Fatalf("got %q, want %q", users[0].Email, "alice@example.com")
+	}
+}
+
+func TestDecryptInterceptor_PointerToStruct(t *testing.T) {
+	entcrypt.Register("User", "email")
+
+	interceptor := DecryptInterceptor(testDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return &struct{ Email string }{Email: "enc:alice@example.com"}, nil
+	})
+
+	v, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u := v.(*struct{ Email string })
+	if u.Email != "alice@example.com" {
+		t.Fatalf("got %q, want %q", u.Email, "alice@example.com")
+	}
+}
+
+func TestDecryptInterceptor_StructValue(t *testing.T) {
+	// Note: struct values (not pointers) cannot be modified by the interceptor
+	// because reflection cannot set fields of non-addressable values.
+	// This test verifies that struct values pass through unchanged.
+	entcrypt.Register("User", "email")
+
+	interceptor := DecryptInterceptor(testDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return struct{ Email string }{Email: "enc:alice@example.com"}, nil
+	})
+
+	v, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u := v.(struct{ Email string })
+	// Struct values cannot be modified, so the field remains encrypted
+	if u.Email != "enc:alice@example.com" {
+		t.Fatalf("got %q, want %q (struct values pass through unchanged)", u.Email, "enc:alice@example.com")
+	}
+}
+
+func TestDecryptInterceptor_DecryptError(t *testing.T) {
+	entcrypt.Register("User", "email")
+
+	interceptor := DecryptInterceptor(failingDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return &struct{ Email string }{Email: "enc:alice@example.com"}, nil
+	})
+
+	_, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestDecryptInterceptor_EmptyFields(t *testing.T) {
+	entcrypt.Register("User", "email")
+
+	interceptor := DecryptInterceptor(testDecrypter{})
+	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+		return &struct{ Email string }{Email: ""}, nil
+	})
+
+	v, err := interceptor.Intercept(next).Query(context.Background(), &UserQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u := v.(*struct{ Email string })
+	if u.Email != "" {
+		t.Fatalf("got %q, want empty", u.Email)
+	}
+}
+
+func TestQueryType_Value(t *testing.T) {
+	// Test with non-pointer query type
+	type PostQuery struct{}
+	got := queryType(PostQuery{})
+	if got != "Post" {
+		t.Fatalf("got %q, want %q", got, "Post")
+	}
+}
+
+func TestQueryType_PostQuery(t *testing.T) {
+	type PostQuery struct{}
+	got := queryType(&PostQuery{})
+	if got != "Post" {
+		t.Fatalf("got %q, want %q", got, "Post")
 	}
 }

@@ -5,11 +5,9 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/k0in/entcrypt)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Encrypt fields in the [ent](https://entgo.io/) framework with AES-256-GCM.
-
-`entcrypt` provides automatic field-level encryption for ent schemas. Fields
+`entcrypt` provides automatic field-level encryption for [ent](https://entgo.io/) schemas. Fields
 are encrypted before writes (via hooks) and decrypted after reads (via
-interceptors). Clients always see plaintext values.
+interceptors) using AES-256-GCM. Clients always see plaintext values.
 
 ## Features
 
@@ -84,60 +82,44 @@ registers the mapping automatically.
 
 ### 3. Use hooks and interceptors at runtime
 
-```go
-// main.go
-package main
+```diff
+ func main() {
+     ctx := context.Background()
 
-import (
-    "context"
-    "encoding/hex"
-    "log"
-    "os"
+     // Create an encrypter from a hex-encoded AES-256 key.
++    key, _ := hex.DecodeString(os.Getenv("ENTCRYPT_KEY"))
++    enc, err := entcrypt.New(&entcrypt.StaticKeyProvider{Key: key})
++    if err != nil {
++        log.Fatal(err)
++    }
 
-    _ "github.com/mattn/go-sqlite3"
+     // Open the ent client.
+     client, err := ent.Open(dialect.SQLite, "file:ent.db?_fk=1")
+     if err != nil {
+         log.Fatal(err)
+     }
+     defer client.Close()
 
-    "entgo.io/ent/dialect"
-    "github.com/k0in/entcrypt"
-    "github.com/k0in/entcrypt/entx"
-)
+     // Install the encryption hook (writes) and decryption interceptor (reads).
++    client.Use(entx.EncryptHookFunc(enc))
++    client.Intercept(entx.DecryptInterceptor(enc))
 
-func main() {
-    ctx := context.Background()
+     // Create — field values are encrypted in the DB.
+     u, err := client.User.Create().
+         SetName("Alice").
+         SetEmail("alice@example.com").
+         SetSsn("000-00-0000").
+         Save(ctx)
+     // u.Email → "alice@example.com" (plaintext on the returned value)
 
-    // Create an encrypter from a hex-encoded AES-256 key.
-    key, _ := hex.DecodeString(os.Getenv("ENTCRYPT_KEY"))
-    enc, err := entcrypt.New(&entcrypt.StaticKeyProvider{Key: key})
-    if err != nil {
-        log.Fatal(err)
-    }
+     // Get — values are decrypted automatically.
+     u, err = client.User.Get(ctx, u.ID)
+     // u.Email → "alice@example.com"
 
-    // Open the ent client.
-    client, err := ent.Open(dialect.SQLite, "file:ent.db?_fk=1")
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer client.Close()
-
-    // Install the encryption hook (writes) and decryption interceptor (reads).
-    client.Use(entx.EncryptHookFunc(enc))
-    client.Intercept(entx.DecryptInterceptor(enc))
-
-    // Create — field values are encrypted in the DB.
-    u, err := client.User.Create().
-        SetName("Alice").
-        SetEmail("alice@example.com").
-        SetSsn("000-00-0000").
-        Save(ctx)
-    // u.Email → "alice@example.com" (plaintext on the returned value)
-
-    // Get — values are decrypted automatically.
-    u, err = client.User.Get(ctx, u.ID)
-    // u.Email → "alice@example.com"
-
-    // Query — all results are decrypted.
-    all, err := client.User.Query().All(ctx)
-    // all[0].Email → "alice@example.com"
-}
+     // Query — all results are decrypted.
+     all, err := client.User.Query().All(ctx)
+     // all[0].Email → "alice@example.com"
+ }
 ```
 
 ### 4. Set your encryption key
@@ -148,28 +130,16 @@ export ENTCRYPT_KEY=$(openssl rand -hex 32)
 
 ## Key Providers
 
-### StaticKeyProvider
-
-Set the key directly in code (loaded from env, flag, or config):
-
 ```go
+// StaticKeyProvider- Set the key directly in code (loaded from env, flag, or config)
 key, _ := hex.DecodeString(os.Getenv("ENTCRYPT_KEY"))
 enc, _ := entcrypt.New(&entcrypt.StaticKeyProvider{Key: key})
-```
 
-### EnvKeyProvider
-
-Reads a hex-encoded key from an environment variable automatically:
-
-```go
+// EnvKeyProvider - Reads a hex-encoded key from an environment variable automatically
 enc, _ := entcrypt.New(&entcrypt.EnvKeyProvider{EnvVar: "ENTCRYPT_KEY"})
-```
 
-### Custom provider
+// Custom provider - implement the KeyProvider interface for your own key source (Vault, AWS KMS, etc.)
 
-Implement the `KeyProvider` interface for your own key source (Vault, AWS KMS, etc.):
-
-```go
 type VaultProvider struct { ... }
 
 func (p *VaultProvider) EncryptionKey() ([]byte, error) {
@@ -198,6 +168,16 @@ Keep this list in sync with your schema annotations. That's the only extra step.
 
 See [`examples/noentc/`](./examples/noentc/) for a complete working example.
 
+## Memory protection
+
+Built with the `goexperiment.runtimesecret` tag, entcrypt uses [`runtime/secret`](https://pkg.go.dev/runtime/secret) to protect decrypted plaintext from GC scanning:
+
+```bash
+go build -tags goexperiment.runtimesecret ./...
+```
+
+Without the tag, entcrypt falls back to standard decryption.
+
 ## Examples
 
 Two examples are provided in the [`examples/`](./examples/) directory:
@@ -207,8 +187,7 @@ Two examples are provided in the [`examples/`](./examples/) directory:
 | [`simple`](./examples/simple/) | `entcrypt.Extension{}` with `entc.Generate()` (auto-register) | `go run ./cmd/entc/` |
 | [`noentc`](./examples/noentc/) | Standard `go generate` (manual register) | `go generate ./ent` |
 
-Both produce the same runtime behaviour — the difference is only in how
-encrypted fields are registered.
+Both produce the same runtime behaviour — the difference is only in how encrypted fields are registered.
 
 ## How it works
 
