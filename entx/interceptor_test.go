@@ -17,6 +17,7 @@ type testDecrypter struct{}
 func (testDecrypter) Decrypt(s string) (string, error) { return s[4:], nil }
 
 func TestDecryptInterceptor(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email", "ssn")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -39,6 +40,7 @@ func TestDecryptInterceptor(t *testing.T) {
 }
 
 func TestDecryptInterceptor_NilResult(t *testing.T) {
+	entcrypt.Reset()
 	interceptor := DecryptInterceptor(testDecrypter{})
 	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
 		return nil, nil
@@ -54,6 +56,7 @@ func TestDecryptInterceptor_NilResult(t *testing.T) {
 }
 
 func TestDecryptInterceptor_NoEncryptedFields(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("Other", "some_field")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -71,6 +74,7 @@ func TestDecryptInterceptor_NoEncryptedFields(t *testing.T) {
 }
 
 func TestQueryType(t *testing.T) {
+	entcrypt.Reset()
 	got := queryType(&UserQuery{})
 	if got != "User" {
 		t.Fatalf("got %q, want %q", got, "User")
@@ -78,6 +82,7 @@ func TestQueryType(t *testing.T) {
 }
 
 func TestDecryptInterceptor_QueryError(t *testing.T) {
+	entcrypt.Reset()
 	interceptor := DecryptInterceptor(testDecrypter{})
 	next := ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
 		return nil, fmt.Errorf("query failed")
@@ -90,6 +95,7 @@ func TestDecryptInterceptor_QueryError(t *testing.T) {
 }
 
 func TestDecryptInterceptor_SliceOfPointers(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -115,6 +121,7 @@ func TestDecryptInterceptor_SliceOfPointers(t *testing.T) {
 }
 
 func TestDecryptInterceptor_SliceOfStructs(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -137,6 +144,7 @@ func TestDecryptInterceptor_SliceOfStructs(t *testing.T) {
 }
 
 func TestDecryptInterceptor_PointerToStruct(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -159,6 +167,7 @@ func TestDecryptInterceptor_StructValue(t *testing.T) {
 	// Note: struct values (not pointers) cannot be modified by the interceptor
 	// because reflection cannot set fields of non-addressable values.
 	// This test verifies that struct values pass through unchanged.
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -179,6 +188,7 @@ func TestDecryptInterceptor_StructValue(t *testing.T) {
 }
 
 func TestDecryptInterceptor_DecryptError(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	interceptor := DecryptInterceptor(failingDecrypter{})
@@ -193,6 +203,7 @@ func TestDecryptInterceptor_DecryptError(t *testing.T) {
 }
 
 func TestDecryptInterceptor_EmptyFields(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	interceptor := DecryptInterceptor(testDecrypter{})
@@ -212,6 +223,7 @@ func TestDecryptInterceptor_EmptyFields(t *testing.T) {
 }
 
 func TestQueryType_Value(t *testing.T) {
+	entcrypt.Reset()
 	// Test with non-pointer query type
 	type PostQuery struct{}
 	got := queryType(PostQuery{})
@@ -221,6 +233,7 @@ func TestQueryType_Value(t *testing.T) {
 }
 
 func TestQueryType_PostQuery(t *testing.T) {
+	entcrypt.Reset()
 	type PostQuery struct{}
 	got := queryType(&PostQuery{})
 	if got != "Post" {

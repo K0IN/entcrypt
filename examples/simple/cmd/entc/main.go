@@ -12,7 +12,7 @@ func main() {
 	opts := []entc.Option{
 		entc.Extensions(entcrypt.Extension{}),
 	}
-	err := entc.Generate("./ent/schema", &gen.Config{}, opts...)
+	err := entc.Generate("./schema", &gen.Config{}, opts...)
 	if err != nil {
 		log.Fatalf("running ent codegen: %v", err)
 	}

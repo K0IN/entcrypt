@@ -6,9 +6,7 @@ import (
 
 func TestRegisterAndLookup(t *testing.T) {
 	// Reset state for this test.
-	mu.Lock()
-	entities = nil
-	mu.Unlock()
+	Reset()
 
 	Register("User", "email", "ssn")
 	Register("Post", "secret_content")
@@ -25,9 +23,7 @@ func TestRegisterAndLookup(t *testing.T) {
 }
 
 func TestEncryptedFields_Unknown(t *testing.T) {
-	mu.Lock()
-	entities = nil
-	mu.Unlock()
+	Reset()
 
 	fields := EncryptedFields("Unknown")
 	if fields != nil {
@@ -36,9 +32,7 @@ func TestEncryptedFields_Unknown(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	mu.Lock()
-	entities = nil
-	mu.Unlock()
+	Reset()
 
 	Register("User", "email")
 	Register("Post", "body")

@@ -27,6 +27,9 @@ jobs:
             - name: Build examples/noentc
               run: cd examples/noentc && go build ./...
 
+            - name: Build examples/simple
+              run: cd examples/simple && go build ./...
+
     lint:
         name: Lint
         runs-on: ubuntu-latest
@@ -103,7 +106,9 @@ jobs:
               run: go test -v -shuffle=on -race -count=1 ./...
 
             - name: Build example
-              run: cd examples/noentc && go build ./...
+              run: |
+                  cd examples/noentc && go build ./...
+                  cd ../simple && go build ./...
 
     coverage:
         name: Coverage
@@ -129,6 +134,6 @@ jobs:
             - name: Generate check
               run: |
                   cd examples/noentc
-                  go run ./cmd/entc/
+                  go generate ./ent
                   git diff --exit-code -- 'ent/entcrypt_gen.go' || \
-                    echo "❌ entcrypt_gen.go is out of date — run 'go run ./cmd/entc/'"
+                    echo "❌ entcrypt_gen.go is out of date — run 'go generate ./ent'"

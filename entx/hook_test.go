@@ -110,6 +110,7 @@ func (m *failingSetFieldMutation) OldField(context.Context, string) (ent.Value, 
 
 func TestEncryptHookFunc(t *testing.T) {
 	// Register encrypted fields.
+	entcrypt.Reset()
 	entcrypt.Register("User", "email", "ssn")
 
 	hook := EncryptHookFunc(testEncrypter{})
@@ -148,6 +149,7 @@ func TestEncryptHookFunc(t *testing.T) {
 }
 
 func TestEncryptHookFunc_NoEncryptedFields(t *testing.T) {
+	entcrypt.Reset()
 	hook := EncryptHookFunc(testEncrypter{})
 	m := &testMutation{typ: "Other", fields: map[string]interface{}{"name": "Bob"}}
 
@@ -164,6 +166,7 @@ func TestEncryptHookFunc_NoEncryptedFields(t *testing.T) {
 	}
 }
 func TestDecrypt_SliceOfPointers(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email string
 		Ssn   string
@@ -188,6 +191,7 @@ func TestDecrypt_SliceOfPointers(t *testing.T) {
 }
 
 func TestDecrypt_SliceOfValues(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email string
 	}
@@ -207,6 +211,7 @@ func TestDecrypt_SliceOfValues(t *testing.T) {
 }
 
 func TestDecrypt_PointerToStruct(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email string
 	}
@@ -223,6 +228,7 @@ func TestDecrypt_PointerToStruct(t *testing.T) {
 }
 
 func TestDecrypt_StructValue(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email string
 	}
@@ -235,6 +241,7 @@ func TestDecrypt_StructValue(t *testing.T) {
 }
 
 func TestDecrypt_EmptyFields(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email string
 	}
@@ -247,6 +254,7 @@ func TestDecrypt_EmptyFields(t *testing.T) {
 }
 
 func TestDecryptStruct_MissingField(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Name string
 	}
@@ -259,6 +267,7 @@ func TestDecryptStruct_MissingField(t *testing.T) {
 }
 
 func TestDecryptStruct_NonStringField(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email int
 	}
@@ -271,6 +280,7 @@ func TestDecryptStruct_NonStringField(t *testing.T) {
 }
 
 func TestDecryptStruct_InvalidValue(t *testing.T) {
+	entcrypt.Reset()
 	var v reflect.Value
 	err := decryptStruct(v, []string{"email"}, testDecrypter{})
 	if err != nil {
@@ -279,6 +289,7 @@ func TestDecryptStruct_InvalidValue(t *testing.T) {
 }
 
 func TestDecryptStruct_JsonTag(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		EmailAddress string `json:"email"`
 	}
@@ -295,6 +306,7 @@ func TestDecryptStruct_JsonTag(t *testing.T) {
 }
 
 func TestDecryptStruct_JsonTagOmitEmpty(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		EmailAddress string `json:"email,omitempty"`
 	}
@@ -311,6 +323,7 @@ func TestDecryptStruct_JsonTagOmitEmpty(t *testing.T) {
 }
 
 func TestDecryptStruct_SnakeCaseField(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		HomeAddress string
 	}
@@ -327,6 +340,7 @@ func TestDecryptStruct_SnakeCaseField(t *testing.T) {
 }
 
 func TestDecryptStruct_DecryptError(t *testing.T) {
+	entcrypt.Reset()
 	type User struct {
 		Email string
 	}
@@ -339,6 +353,7 @@ func TestDecryptStruct_DecryptError(t *testing.T) {
 }
 
 func TestDecrypt_NilPointer(t *testing.T) {
+	entcrypt.Reset()
 	var u *struct{ Email string }
 	err := decrypt(u, []string{"email"}, testDecrypter{})
 	if err != nil {
@@ -347,6 +362,7 @@ func TestDecrypt_NilPointer(t *testing.T) {
 }
 
 func TestDecrypt_EmptySlice(t *testing.T) {
+	entcrypt.Reset()
 	users := []struct{ Email string }{}
 	err := decrypt(&users, []string{"email"}, testDecrypter{})
 	if err != nil {
@@ -355,6 +371,7 @@ func TestDecrypt_EmptySlice(t *testing.T) {
 }
 
 func TestSnakeToPascal(t *testing.T) {
+	entcrypt.Reset()
 	tests := []struct {
 		input string
 		want  string
@@ -381,6 +398,7 @@ func TestSnakeToPascal(t *testing.T) {
 }
 
 func TestEncryptHookFunc_EncryptError(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	hook := EncryptHookFunc(failingEncrypter{})
@@ -400,6 +418,7 @@ func TestEncryptHookFunc_EncryptError(t *testing.T) {
 }
 
 func TestEncryptHookFunc_NonStringField(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "age")
 
 	hook := EncryptHookFunc(testEncrypter{})
@@ -422,6 +441,7 @@ func TestEncryptHookFunc_NonStringField(t *testing.T) {
 }
 
 func TestEncryptHookFunc_EmptyStringField(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	hook := EncryptHookFunc(testEncrypter{})
@@ -444,6 +464,7 @@ func TestEncryptHookFunc_EmptyStringField(t *testing.T) {
 }
 
 func TestEncryptHookFunc_SetFieldError(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	hook := EncryptHookFunc(testEncrypter{})
@@ -464,6 +485,7 @@ func TestEncryptHookFunc_SetFieldError(t *testing.T) {
 
 func TestEncryptHookFunc_FieldNotPresent(t *testing.T) {
 	// Test when m.Field(f) returns false (field not present in mutation)
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	hook := EncryptHookFunc(testEncrypter{})
@@ -502,6 +524,7 @@ func TestDecrypt_StructValue_Pointer(t *testing.T) {
 }
 
 func TestEncryptHookFunc_NextMutateError(t *testing.T) {
+	entcrypt.Reset()
 	entcrypt.Register("User", "email")
 
 	hook := EncryptHookFunc(testEncrypter{})
