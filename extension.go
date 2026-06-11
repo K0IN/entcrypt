@@ -26,8 +26,8 @@ func (Extension) Hooks() []gen.Hook {
 }
 
 func (Extension) Annotations() []entc.Annotation { return nil }
-func (Extension) Templates() []*gen.Template { return nil }
-func (Extension) Options() []entc.Option { return nil }
+func (Extension) Templates() []*gen.Template     { return nil }
+func (Extension) Options() []entc.Option         { return nil }
 
 func writeRegistry(g *gen.Graph) error {
 	var buf []byte
