@@ -6,6 +6,8 @@ on:
     pull_request:
         branches: [ main ]
 
+permissions: read-all
+
 jobs:
     build:
         name: Build
@@ -82,7 +84,29 @@ jobs:
               run: govulncheck ./...
 
     test:
-        name: Test
+        name: Test (Go ${{ matrix.go-version }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                go-version: ["1.25", "1.26"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ matrix.go-version }}
+                  cache: true
+
+            - name: Test
+              run: go test -v -shuffle=on -race -count=1 ./...
+
+            - name: Build example
+              run: cd examples/noentc && go build ./...
+
+    coverage:
+        name: Coverage
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -93,11 +117,16 @@ jobs:
                   go-version: "1.26"
                   cache: true
 
-            - name: Test
-              run: go test -v -shuffle=on -race -count=1 ./...
+            - name: Generate coverage
+              run: |
+                  go test -coverprofile=coverage.out -covermode=atomic ./...
+                  go tool cover -func=coverage.out -o=coverage.txt
 
-            - name: Build example
-              run: cd examples/noentc && go build ./...
+            - name: Upload coverage report
+              uses: codecov/codecov-action@v4
+              with:
+                  file: coverage.out
+                  fail_ci_error: false
 
             - name: Generate check
               run: |

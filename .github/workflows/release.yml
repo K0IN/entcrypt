@@ -5,10 +5,14 @@ on:
         tags:
             - "v*"
 
+# read-all default; job-level write required to create GitHub Releases
+permissions: read-all
+
 jobs:
     release:
         name: Release
         runs-on: ubuntu-latest
+        # contents:write — required to create the GitHub Release
         permissions:
             contents: write
         steps:
