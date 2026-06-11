@@ -87,19 +87,15 @@ jobs:
               run: govulncheck ./...
 
     test:
-        name: Test (Go ${{ matrix.go-version }})
+        name: Test
         runs-on: ubuntu-latest
-        strategy:
-            fail-fast: false
-            matrix:
-                go-version: ["1.25", "1.26"]
         steps:
             - uses: actions/checkout@v6
 
             - name: Set up Go
               uses: actions/setup-go@v6
               with:
-                  go-version: ${{ matrix.go-version }}
+                  go-version: "1.26"
                   cache: true
 
             - name: Test
