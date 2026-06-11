@@ -178,6 +178,25 @@ go build -tags goexperiment.runtimesecret ./...
 
 Without the tag, entcrypt falls back to standard decryption.
 
+## Plaintext migration caveat
+
+Values that do not start with the `v1:AES-256-GCM:` storage header are treated as already-plaintext
+and returned unchanged during decryption. This behavior is intended to support
+in-place migrations of existing plaintext columns: after you register an
+encrypted field and install `entx.DecryptInterceptor`, legacy rows can still be
+read before they are rewritten through the encryption hook.
+
+This fallback also means missing-header values do not receive AES-GCM integrity
+verification. If an attacker or operational process can modify database contents
+directly, they can place arbitrary plaintext in an encrypted column and the
+default read path will return that plaintext to application code. Properly
+formatted `v1:AES-256-GCM:` values are still authenticated and tampering with
+their ciphertext is rejected.
+
+If your threat model requires every encrypted-field database value to be
+authenticated on read, do not rely on mixed plaintext/ciphertext storage. Migrate
+legacy plaintext rows to encrypted values and restrict direct database writes.
+
 ## Examples
 
 Two examples are provided in the [`examples/`](./examples/) directory:
