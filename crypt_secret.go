@@ -39,11 +39,12 @@ func (e *Encrypter) Encrypt(plaintext string) (result string, err error) {
 }
 
 func (e *Encrypter) Decrypt(ciphertext string) (result string, err error) {
+	if !strings.HasPrefix(ciphertext, headerV1) {
+		// No encryption header — treat as plaintext (migration tolerance).
+		result = ciphertext
+		return
+	}
 	secret.Do(func() {
-		if !strings.HasPrefix(ciphertext, headerV1) {
-			err = fmt.Errorf("entcrypt: unknown or missing encryption header")
-			return
-		}
 		body := ciphertext[len(headerV1):]
 
 		data, cerr := base64.RawStdEncoding.DecodeString(body)
