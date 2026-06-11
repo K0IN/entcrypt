@@ -17,7 +17,7 @@ jobs:
             pull-requests: write
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/stale@v9
+            - uses: actions/stale@v10
               with:
                   stale-issue-message: >
                       This issue has been open for 60 days with no activity.
