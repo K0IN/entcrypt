@@ -79,11 +79,11 @@ jobs:
               run: go test -v -shuffle=on -race -count=1 ./...
 
             - name: Build example
-              run: cd examples/simple && go build ./...
+              run: cd examples/noentc && go build ./...
 
             - name: Generate check
               run: |
-                  cd examples/simple
+                  cd examples/noentc
                   go run ./cmd/entc/
                   git diff --exit-code -- 'ent/entcrypt_gen.go' || \
                     echo "❌ entcrypt_gen.go is out of date — run 'go run ./cmd/entc/'"
