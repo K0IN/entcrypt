@@ -58,15 +58,16 @@ func EncryptHookFunc(enc interface {
 }
 
 func decrypt(v interface{}, fields []string, d interface{ Decrypt(string) (string, error) }) error {
+	const ptrKind = reflect.Ptr
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
+	if rv.Kind() == ptrKind {
 		rv = rv.Elem()
 	}
 	switch rv.Kind() {
 	case reflect.Slice:
 		for i := 0; i < rv.Len(); i++ {
 			e := rv.Index(i)
-			if e.Kind() == reflect.Ptr {
+			if e.Kind() == ptrKind {
 				e = e.Elem()
 			}
 			if err := decryptStruct(e, fields, d); err != nil {
