@@ -39,13 +39,23 @@ go generate ./ent          # run custom entc with entcrypt.Extension
 go run .                   # run the example
 ```
 
+The example uses a fixed 32-byte AES-256 key for repeatable local runs. In an
+application, load a 64-character hex key from configuration or generate one
+with `openssl rand -hex 32`.
+
 ## What to expect
 
 ```
 created: id=1 name=Alice email=alice@example.com ssn=000-00-0000
 queried: id=1 name=Alice email=alice@example.com ssn=000-00-0000
+all: id=1 name=Alice email=alice@example.com ssn=000-00-0000
+plaintext email predicate matched encrypted row: false
 raw (encrypted): email="v1:AES-256-GCM:..." ssn="v1:AES-256-GCM:..."
 ```
+
+The plaintext predicate result is expected. Encrypted fields are decrypted after
+reads, but normal ent predicates compare against the randomized ciphertext in
+the database.
 
 Same runtime behaviour as the `noentc` example. The key difference is that
 this example uses the `entcrypt.Extension{}` to automatically register

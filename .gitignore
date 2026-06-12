@@ -17,8 +17,6 @@ vendor/
 # Local module cache
 pkg/
 
-# Go workspace file
-*.code-workspace
 
 # DB files from examples
 *.db

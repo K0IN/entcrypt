@@ -10,24 +10,25 @@ import (
 
 	"entgo.io/ent/dialect"
 	"github.com/k0in/entcrypt"
+	"github.com/k0in/entcrypt/entx"
 	"github.com/k0in/entcrypt/examples/noentc/ent"
 	"github.com/k0in/entcrypt/examples/noentc/ent/user"
-	"github.com/k0in/entcrypt/entx"
 )
 
 func main() {
 	ctx := context.Background()
+	dbURL := "file:entcrypt_noentc?mode=memory&cache=shared&_fk=1"
 
 	key, err := hex.DecodeString("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 	if err != nil {
-		log.Fatalf("ENTCRYPT_KEY must be a hex-encoded AES-256 key: %v", err)
+		log.Fatalf("ENTCRYPT_KEY must be a 32-byte hex-encoded AES-256 key: %v", err)
 	}
 	enc, err := entcrypt.New(&entcrypt.StaticKeyProvider{Key: key})
 	if err != nil {
 		log.Fatalf("creating encrypter: %v", err)
 	}
 
-	client, err := ent.Open(dialect.SQLite, "file:entcrypt_noentc.db?_fk=1")
+	client, err := ent.Open(dialect.SQLite, dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,7 +67,7 @@ func main() {
 
 	// Verify data is actually encrypted in the database by querying without
 	// the encryption hook/interceptor.
-	rawClient, err := ent.Open(dialect.SQLite, "file:entcrypt_noentc.db?_fk=1")
+	rawClient, err := ent.Open(dialect.SQLite, dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,5 +79,4 @@ func main() {
 	fmt.Printf("raw (encrypted): email=%q ssn=%q\n", raw.Email, raw.Ssn)
 
 	fmt.Println("\n✓ All encryption tests passed!")
-	fmt.Println("DB saved to entcrypt_noentc.db — inspect with: sqlite3 entcrypt_noentc.db 'SELECT * FROM users;'")
 }

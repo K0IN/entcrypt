@@ -15,8 +15,8 @@ type StaticKeyProvider struct {
 }
 
 func (s *StaticKeyProvider) EncryptionKey() ([]byte, error) {
-	if len(s.Key) != 16 && len(s.Key) != 24 && len(s.Key) != 32 {
-		return nil, fmt.Errorf("entcrypt: key size %d is invalid; need 16, 24, or 32 bytes", len(s.Key))
+	if len(s.Key) != 32 {
+		return nil, fmt.Errorf("entcrypt: key size %d is invalid; need 32 bytes", len(s.Key))
 	}
 	return s.Key, nil
 }
@@ -38,8 +38,8 @@ func (e *EnvKeyProvider) EncryptionKey() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("entcrypt: %s is not valid hex: %w", v, err)
 	}
-	if len(key) != 16 && len(key) != 24 && len(key) != 32 {
-		return nil, fmt.Errorf("entcrypt: %s decodes to %d bytes; need 16, 24, or 32", v, len(key))
+	if len(key) != 32 {
+		return nil, fmt.Errorf("entcrypt: %s decodes to %d bytes; need 32", v, len(key))
 	}
 	return key, nil
 }
@@ -49,9 +49,21 @@ type Encrypter struct {
 }
 
 func New(prov KeyProvider) (*Encrypter, error) {
+	if prov == nil {
+		return nil, fmt.Errorf("entcrypt: key provider is nil")
+	}
 	key, err := prov.EncryptionKey()
 	if err != nil {
 		return nil, err
 	}
-	return &Encrypter{key: key}, nil
+	if len(key) != 32 {
+		return nil, fmt.Errorf("entcrypt: key size %d is invalid; need 32 bytes", len(key))
+	}
+	return &Encrypter{key: cloneBytes(key)}, nil
+}
+
+func cloneBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

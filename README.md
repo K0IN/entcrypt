@@ -131,7 +131,7 @@ export ENTCRYPT_KEY=$(openssl rand -hex 32)
 ## Key Providers
 
 ```go
-// StaticKeyProvider- Set the key directly in code (loaded from env, flag, or config)
+// StaticKeyProvider - Set the key directly in code (loaded from env, flag, or config)
 key, _ := hex.DecodeString(os.Getenv("ENTCRYPT_KEY"))
 enc, _ := entcrypt.New(&entcrypt.StaticKeyProvider{Key: key})
 
@@ -146,6 +146,9 @@ func (p *VaultProvider) EncryptionKey() ([]byte, error) {
     return p.fetchKey()
 }
 ```
+
+Keys must be exactly 32 bytes after decoding. For hex-encoded keys, use 64
+hex characters, for example `openssl rand -hex 32`.
 
 ## Without the entc extension
 
@@ -165,6 +168,8 @@ func init() {
 ```
 
 Keep this list in sync with your schema annotations. That's the only extra step.
+If `Register` is called more than once for the same entity, fields are merged
+and duplicate field names are ignored.
 
 See [`examples/noentc/`](./examples/noentc/) for a complete working example.
 
@@ -196,6 +201,18 @@ their ciphertext is rejected.
 If your threat model requires every encrypted-field database value to be
 authenticated on read, do not rely on mixed plaintext/ciphertext storage. Migrate
 legacy plaintext rows to encrypted values and restrict direct database writes.
+
+## Query limitations
+
+Encrypted fields cannot be queried by plaintext with normal ent predicates.
+Because AES-GCM uses a random nonce for each write, the same plaintext encrypts
+to a different ciphertext each time. A predicate such as
+`Where(user.EmailEQ("alice@example.com"))` compares the plaintext value against
+the randomized ciphertext stored in the database, so it will not match.
+
+For lookup fields, store a separate normalized lookup value such as a keyed hash
+or another application-specific index column, and keep the encrypted field for
+confidential reads.
 
 ## Examples
 

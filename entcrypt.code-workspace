@@ -1,0 +1,37 @@
+{
+    "folders": [
+        {
+            "name": "entcrypt",
+            "path": "."
+        },
+        {
+            "name": "examples",
+            "path": "examples"
+        }
+    ],
+    "settings": {
+        "go.useLanguageServer": true,
+        "go.gopath": "${workspaceFolder}",
+        "go.buildOnSave": "workspace",
+        "go.lintOnSave": "workspace",
+        "go.testFlags": [
+            "-v"
+        ],
+        "go.testTimeout": "30s",
+        "go.coverageOnTest": true,
+        "go.delveConfig": {
+            "dlvLoadConfig": {
+                "followPointers": true,
+                "maxStringLen": 120,
+                "maxArrayValues": 64,
+                "maxStructFields": 64
+            }
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "qwtel.sqlite-viewer",
+            "golang.go"
+        ]
+    }
+}

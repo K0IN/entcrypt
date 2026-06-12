@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
+	"unicode"
 
 	"entgo.io/ent"
 	"github.com/k0in/entcrypt"
@@ -90,8 +92,8 @@ func decryptStruct(rv reflect.Value, fields []string, d interface{ Decrypt(strin
 			if !ok2 {
 				return false
 			}
-			tag := field.Tag.Get("json")
-			return tag == f || tag == f+",omitempty" || name == snakeToPascal(f)
+			tagName, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+			return tagName == f || name == snakeToPascal(f)
 		})
 		if !ok {
 			continue
@@ -114,7 +116,7 @@ func decryptStruct(rv reflect.Value, fields []string, d interface{ Decrypt(strin
 }
 
 func snakeToPascal(s string) string {
-	var r string
+	var b strings.Builder
 	up := true
 	for _, c := range s {
 		if c == '_' {
@@ -122,11 +124,11 @@ func snakeToPascal(s string) string {
 			continue
 		}
 		if up {
-			r += string(c - 32)
+			b.WriteRune(unicode.ToUpper(c))
 			up = false
 		} else {
-			r += string(c)
+			b.WriteRune(c)
 		}
 	}
-	return r
+	return b.String()
 }

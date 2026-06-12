@@ -10,23 +10,27 @@ import (
 
 	"entgo.io/ent/dialect"
 	"github.com/k0in/entcrypt"
+	"github.com/k0in/entcrypt/entx"
 	"github.com/k0in/entcrypt/examples/simple/ent"
 	"github.com/k0in/entcrypt/examples/simple/ent/user"
-	"github.com/k0in/entcrypt/entx"
 )
 
 func main() {
 	ctx := context.Background()
+	dbURL := "file:entcrypt_simple?mode=memory&cache=shared&_fk=1"
 
 	// Create an encrypter from a hex-encoded AES-256 key.
-	key, _ := hex.DecodeString("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	key, err := hex.DecodeString("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	if err != nil {
+		log.Fatalf("ENTCRYPT_KEY must be a 32-byte hex-encoded AES-256 key: %v", err)
+	}
 	enc, err := entcrypt.New(&entcrypt.StaticKeyProvider{Key: key})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("creating encrypter: %v", err)
 	}
 
 	// Open the ent client.
-	client, err := ent.Open(dialect.SQLite, "file:ent.db?_fk=1")
+	client, err := ent.Open(dialect.SQLite, dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,9 +71,17 @@ func main() {
 		fmt.Printf("all: id=%d name=%s email=%s ssn=%s\n", u.ID, u.Name, u.Email, u.Ssn)
 	}
 
+	// Plaintext predicates do not match encrypted fields because AES-GCM uses
+	// a random nonce for every write.
+	matchedByEmail, err := client.User.Query().Where(user.EmailEQ("alice@example.com")).Exist(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("plaintext email predicate matched encrypted row: %t\n", matchedByEmail)
+
 	// Verify data is actually encrypted in the database by querying without
 	// the encryption hook/interceptor.
-	rawClient, err := ent.Open(dialect.SQLite, "file:ent.db?_fk=1")
+	rawClient, err := ent.Open(dialect.SQLite, dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,5 +94,3 @@ func main() {
 
 	fmt.Println("\n✓ All encryption tests passed!")
 }
-
-

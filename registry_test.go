@@ -55,8 +55,64 @@ func TestRegister_MultipleCalls(t *testing.T) {
 	Register("User", "ssn")
 
 	fields := EncryptedFields("User")
-	// Each Register call appends a new Entity entry.
-	// The lookup returns the first match.
+	if len(fields) != 2 || fields[0] != "email" || fields[1] != "ssn" {
+		t.Fatalf("got %v, want [email ssn]", fields)
+	}
+
+	all := All()
+	if len(all) != 1 {
+		t.Fatalf("got %d entities, want 1", len(all))
+	}
+}
+
+func TestRegister_DeduplicatesFields(t *testing.T) {
+	resetRegistryForTest()
+
+	Register("User", "email", "ssn")
+	Register("User", "email", "phone")
+
+	fields := EncryptedFields("User")
+	if len(fields) != 3 || fields[0] != "email" || fields[1] != "ssn" || fields[2] != "phone" {
+		t.Fatalf("got %v, want [email ssn phone]", fields)
+	}
+}
+
+func TestEncryptedFields_ReturnsCopy(t *testing.T) {
+	resetRegistryForTest()
+
+	Register("User", "email")
+
+	fields := EncryptedFields("User")
+	fields[0] = "mutated"
+
+	fields = EncryptedFields("User")
+	if len(fields) != 1 || fields[0] != "email" {
+		t.Fatalf("got %v, want [email]", fields)
+	}
+}
+
+func TestRegister_CopiesInputFields(t *testing.T) {
+	resetRegistryForTest()
+
+	fields := []string{"email", "ssn"}
+	Register("User", fields...)
+	fields[0] = "mutated"
+
+	got := EncryptedFields("User")
+	if len(got) != 2 || got[0] != "email" || got[1] != "ssn" {
+		t.Fatalf("got %v, want [email ssn]", got)
+	}
+}
+
+func TestAll_ReturnsCopy(t *testing.T) {
+	resetRegistryForTest()
+
+	Register("User", "email")
+
+	all := All()
+	all[0].Fields[0] = "mutated"
+
+	fields := EncryptedFields("User")
 	if len(fields) != 1 || fields[0] != "email" {
 		t.Fatalf("got %v, want [email]", fields)
 	}

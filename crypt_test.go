@@ -25,6 +25,54 @@ func TestNew_InvalidKeySize(t *testing.T) {
 	}
 }
 
+func TestNew_NilProvider(t *testing.T) {
+	_, err := New(nil)
+	if err == nil {
+		t.Fatal("expected error for nil provider")
+	}
+}
+
+type uncheckedKeyProvider struct {
+	key []byte
+}
+
+func (p uncheckedKeyProvider) EncryptionKey() ([]byte, error) {
+	return p.key, nil
+}
+
+func TestNew_ValidatesCustomProviderKeySize(t *testing.T) {
+	_, err := New(uncheckedKeyProvider{key: []byte("too-short")})
+	if err == nil {
+		t.Fatal("expected error for invalid custom provider key size")
+	}
+}
+
+func TestNew_CopiesProviderKey(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+
+	enc, err := New(&StaticKeyProvider{Key: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ct, err := enc.Encrypt("secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range key {
+		key[i] ^= 0xff
+	}
+
+	pt, err := enc.Decrypt(ct)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pt != "secret" {
+		t.Fatalf("got %q, want secret", pt)
+	}
+}
+
 func TestEncryptDecrypt(t *testing.T) {
 	key := make([]byte, 32)
 	rand.Read(key)
@@ -127,8 +175,8 @@ func TestStaticKeyProvider_Validation(t *testing.T) {
 		key  []byte
 		ok   bool
 	}{
-		{"aes-128", make([]byte, 16), true},
-		{"aes-192", make([]byte, 24), true},
+		{"aes-128", make([]byte, 16), false},
+		{"aes-192", make([]byte, 24), false},
 		{"aes-256", make([]byte, 32), true},
 		{"too-small", []byte{1, 2, 3}, false},
 		{"too-large", make([]byte, 33), false},
@@ -181,7 +229,7 @@ func TestEnvKeyProvider_InvalidHex(t *testing.T) {
 }
 
 func TestEnvKeyProvider_WrongKeySize(t *testing.T) {
-	// 10 bytes after hex decode - not 16, 24, or 32
+	// 10 bytes after hex decode - not 32.
 	t.Setenv("TEST_BAD_SIZE_KEY", "010203040506070809")
 	_, err := New(&EnvKeyProvider{EnvVar: "TEST_BAD_SIZE_KEY"})
 	if err == nil {
@@ -216,8 +264,8 @@ func TestEnvKeyProvider_NotSet(t *testing.T) {
 	}
 }
 
-func TestAES192(t *testing.T) {
-	key := make([]byte, 24)
+func TestAES256(t *testing.T) {
+	key := make([]byte, 32)
 	rand.Read(key)
 
 	enc, err := New(&StaticKeyProvider{Key: key})
@@ -343,8 +391,12 @@ func TestDecrypt_CorruptedCiphertext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Corrupt the last byte of the base64 data
-	ct = ct[:len(ct)-1] + "X"
+	// Corrupt the last byte of the base64 data without changing the header.
+	replacement := "A"
+	if ct[len(ct)-1:] == replacement {
+		replacement = "B"
+	}
+	ct = ct[:len(ct)-1] + replacement
 
 	_, err = enc.Decrypt(ct)
 	if err == nil {

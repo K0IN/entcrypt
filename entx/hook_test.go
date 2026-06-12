@@ -312,6 +312,22 @@ func TestDecryptStruct_JsonTagOmitEmpty(t *testing.T) {
 	}
 }
 
+func TestDecryptStruct_JsonTagMultipleOptions(t *testing.T) {
+	type User struct {
+		EmailAddress string `json:"email,omitempty,string"`
+	}
+
+	u := &User{EmailAddress: "enc:alice@example.com"}
+	err := decrypt(u, []string{"email"}, testDecrypter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if u.EmailAddress != "alice@example.com" {
+		t.Fatalf("got %q", u.EmailAddress)
+	}
+}
+
 func TestDecryptStruct_SnakeCaseField(t *testing.T) {
 	type User struct {
 		HomeAddress string

@@ -2,6 +2,7 @@ package entcrypt
 
 import (
 	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"sort"
@@ -46,6 +47,9 @@ func writeRegistry(g *gen.Graph) error {
 		var fields []string
 		for _, f := range n.Fields {
 			if _, ok := f.Annotations["EncryptedField"]; ok {
+				if !f.IsString() {
+					return fmt.Errorf("entcrypt: %s.%s is annotated with EncryptedField but is %s; only string fields can be encrypted", n.Name, f.Name, fieldTypeName(f))
+				}
 				fields = append(fields, f.Name)
 			}
 		}
@@ -54,6 +58,9 @@ func writeRegistry(g *gen.Graph) error {
 			entries = append(entries, entry{typ: n.Name, fields: fields})
 		}
 	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].typ < entries[j].typ
+	})
 
 	if len(entries) == 0 {
 		buf = append(buf, []byte("\t// No encrypted fields found.\n")...)
@@ -69,12 +76,27 @@ func writeRegistry(g *gen.Graph) error {
 		buf = append(buf, []byte("}\n")...)
 	}
 
+	src, err := format.Source(buf)
+	if err != nil {
+		return fmt.Errorf("entcrypt: format generated registry: %w", err)
+	}
+
 	out := filepath.Join(g.Target, "entcrypt_gen.go")
 	if err := os.MkdirAll(filepath.Dir(out), 0750); err != nil {
 		return fmt.Errorf("entcrypt: %w", err)
 	}
-	if err := os.WriteFile(out, buf, 0600); err != nil {
+	if err := os.WriteFile(out, src, 0644); err != nil {
 		return fmt.Errorf("entcrypt: write %s: %w", out, err)
 	}
+	if err := os.Chmod(out, 0644); err != nil {
+		return fmt.Errorf("entcrypt: chmod %s: %w", out, err)
+	}
 	return nil
+}
+
+func fieldTypeName(f *gen.Field) string {
+	if f.Type == nil {
+		return "<unknown>"
+	}
+	return f.Type.String()
 }
