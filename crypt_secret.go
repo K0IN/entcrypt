@@ -40,8 +40,11 @@ func (e *Encrypter) Encrypt(plaintext string) (result string, err error) {
 
 func (e *Encrypter) Decrypt(ciphertext string) (result string, err error) {
 	if !strings.HasPrefix(ciphertext, headerV1) {
-		// No encryption header — treat as plaintext (migration tolerance).
-		result = ciphertext
+		if e.allowPlaintextFallback {
+			result = ciphertext
+			return
+		}
+		err = fmt.Errorf("entcrypt: missing encrypted value header")
 		return
 	}
 	secret.Do(func() {

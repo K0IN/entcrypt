@@ -117,7 +117,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	}
 }
 
-func TestDecrypt_PlaintextFallback(t *testing.T) {
+func TestDecrypt_MissingHeaderFailsByDefault(t *testing.T) {
 	key := make([]byte, 32)
 	rand.Read(key)
 
@@ -126,7 +126,33 @@ func TestDecrypt_PlaintextFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Values without the encryption header should be returned as-is.
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{"no-header", "no-header-here"},
+		{"random-text", "not-valid-base64!!!"},
+		{"short", "too-short"},
+		{"empty", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := enc.Decrypt(tt.in); err == nil {
+				t.Fatal("expected error for missing encrypted value header")
+			}
+		})
+	}
+}
+
+func TestDecrypt_PlaintextFallbackOption(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+
+	enc, err := New(&StaticKeyProvider{Key: key}, WithPlaintextFallback())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
 		name string
 		in   string

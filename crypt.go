@@ -45,10 +45,19 @@ func (e *EnvKeyProvider) EncryptionKey() ([]byte, error) {
 }
 
 type Encrypter struct {
-	key []byte
+	key                    []byte
+	allowPlaintextFallback bool
 }
 
-func New(prov KeyProvider) (*Encrypter, error) {
+type Option func(*Encrypter)
+
+func WithPlaintextFallback() Option {
+	return func(e *Encrypter) {
+		e.allowPlaintextFallback = true
+	}
+}
+
+func New(prov KeyProvider, opts ...Option) (*Encrypter, error) {
 	if prov == nil {
 		return nil, fmt.Errorf("entcrypt: key provider is nil")
 	}
@@ -59,7 +68,13 @@ func New(prov KeyProvider) (*Encrypter, error) {
 	if len(key) != 32 {
 		return nil, fmt.Errorf("entcrypt: key size %d is invalid; need 32 bytes", len(key))
 	}
-	return &Encrypter{key: cloneBytes(key)}, nil
+	enc := &Encrypter{key: cloneBytes(key)}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(enc)
+		}
+	}
+	return enc, nil
 }
 
 func cloneBytes(in []byte) []byte {

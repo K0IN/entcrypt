@@ -185,22 +185,23 @@ Without the tag, entcrypt falls back to standard decryption.
 
 ## Plaintext migration caveat
 
-Values that do not start with the `v1:AES-256-GCM:` storage header are treated as already-plaintext
-and returned unchanged during decryption. This behavior is intended to support
-in-place migrations of existing plaintext columns: after you register an
-encrypted field and install `entx.DecryptInterceptor`, legacy rows can still be
-read before they are rewritten through the encryption hook.
+Values that do not start with the `v1:AES-256-GCM:` storage header fail
+decryption by default. This keeps new projects fail-closed: encrypted-field
+database values must be authenticated AES-GCM ciphertext before they are returned
+to application code.
 
-This fallback also means missing-header values do not receive AES-GCM integrity
-verification. If an attacker or operational process can modify database contents
-directly, they can place arbitrary plaintext in an encrypted column and the
-default read path will return that plaintext to application code. Properly
-formatted `v1:AES-256-GCM:` values are still authenticated and tampering with
-their ciphertext is rejected.
+For in-place migrations of existing plaintext columns, opt in explicitly:
 
-If your threat model requires every encrypted-field database value to be
-authenticated on read, do not rely on mixed plaintext/ciphertext storage. Migrate
-legacy plaintext rows to encrypted values and restrict direct database writes.
+```go
+enc, err := entcrypt.New(
+    &entcrypt.EnvKeyProvider{EnvVar: "ENTCRYPT_KEY"},
+    entcrypt.WithPlaintextFallback(),
+)
+```
+
+Use this only while migrating legacy rows. Missing-header values do not receive
+AES-GCM integrity verification, so migrate plaintext rows to encrypted values
+and disable the fallback once the migration is complete.
 
 ## Query limitations
 
@@ -216,14 +217,18 @@ confidential reads.
 
 ## Examples
 
-Two examples are provided in the [`examples/`](./examples/) directory:
+Examples are provided in the [`examples/`](./examples/) directory:
 
 | Directory | Approach | Codegen command |
 |-----------|----------|----------------|
 | [`simple`](./examples/simple/) | `entcrypt.Extension{}` with `entc.Generate()` (auto-register) | `go run ./cmd/entc/` |
 | [`noentc`](./examples/noentc/) | Standard `go generate` (manual register) | `go generate ./ent` |
+| [`complex`](./examples/complex/) | Multi-schema `entcrypt.Extension{}` setup with edges and encrypted predicates proof | `go run ./cmd/entc/` |
 
-Both produce the same runtime behaviour — the difference is only in how encrypted fields are registered.
+The simple and noentc examples produce the same runtime behaviour — the
+difference is only in how encrypted fields are registered. The complex example
+exercises multiple schemas, edges, raw encrypted storage checks, and the fact
+that plaintext predicates do not match randomized encrypted values.
 
 ## How it works
 
@@ -279,5 +284,6 @@ sqlite3 ent.db "SELECT email, ssn FROM users;"
 | `entcrypt` | `New(provider)` | Creates an `Encrypter` from a key provider |
 | `entcrypt` | `StaticKeyProvider` | Key provider with a static AES key |
 | `entcrypt` | `EnvKeyProvider` | Key provider reading from an env var |
+| `entcrypt` | `WithPlaintextFallback()` | Explicit migration option for legacy plaintext rows |
 | `entx` | `EncryptHookFunc(enc)` | Returns an ent.Hook that encrypts on write |
 | `entx` | `DecryptInterceptor(enc)` | Returns an ent.Interceptor that decrypts on read |

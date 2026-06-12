@@ -92,8 +92,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("plaintext encrypted-field predicates matched: email=%t billing_zip=%t\n",
+	fmt.Printf("plaintext encrypted-field predicates matched encrypted rows: email=%t billing_zip=%t\n",
 		plaintextEmailMatch, plaintextZipMatch)
+	if plaintextEmailMatch || plaintextZipMatch {
+		log.Fatal("plaintext predicates should not match randomized encrypted values")
+	}
 
 	rawClient, err := ent.Open(dialect.SQLite, dbURL)
 	if err != nil {
