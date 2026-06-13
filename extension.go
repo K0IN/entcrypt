@@ -85,10 +85,10 @@ func writeRegistry(g *gen.Graph) error {
 	if err := os.MkdirAll(filepath.Dir(out), 0750); err != nil {
 		return fmt.Errorf("entcrypt: %w", err)
 	}
-	if err := os.WriteFile(out, src, 0644); err != nil {
+	if err := os.WriteFile(out, src, 0644); err != nil { // #nosec G306 -- generated source file, 0644 is standard
 		return fmt.Errorf("entcrypt: write %s: %w", out, err)
 	}
-	if err := os.Chmod(out, 0644); err != nil {
+	if err := os.Chmod(out, 0644); err != nil { // #nosec G302 -- generated source file, 0644 is standard
 		return fmt.Errorf("entcrypt: chmod %s: %w", out, err)
 	}
 	return nil
