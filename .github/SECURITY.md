@@ -35,4 +35,4 @@ We will keep you informed of the progress toward a fix and let you know when the
 - Random nonces for each encryption operation
 - Pluggable key providers for key management
 - Runtime security scanning (gosec + govulncheck)
-- Scheduled fuzzing tests
+- Codex security review for critical code paths
