@@ -526,7 +526,7 @@ func BenchmarkEncrypt_Short(b *testing.B) {
 	input := "alice@example.com"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		enc.Encrypt(input)
+		_, _ = enc.Encrypt(input)
 	}
 }
 
@@ -537,7 +537,7 @@ func BenchmarkDecrypt_Short(b *testing.B) {
 	ct, _ := enc.Encrypt("alice@example.com")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		enc.Decrypt(ct)
+		_, _ = enc.Decrypt(ct)
 	}
 }
 
@@ -548,7 +548,7 @@ func BenchmarkEncrypt_Long(b *testing.B) {
 	input := string(make([]byte, 1000))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		enc.Encrypt(input)
+		_, _ = enc.Encrypt(input)
 	}
 }
 
@@ -559,7 +559,7 @@ func BenchmarkDecrypt_Long(b *testing.B) {
 	ct, _ := enc.Encrypt(string(make([]byte, 1000)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		enc.Decrypt(ct)
+		_, _ = enc.Decrypt(ct)
 	}
 }
 
@@ -573,6 +573,6 @@ func BenchmarkReEncrypt(b *testing.B) {
 	ct, _ := oldEnc.Encrypt("sensitive-pii-data")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ReEncrypt(oldEnc, newEnc, ct)
+		_, _ = ReEncrypt(oldEnc, newEnc, ct)
 	}
 }
