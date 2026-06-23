@@ -429,3 +429,150 @@ func TestDecrypt_CorruptedCiphertext(t *testing.T) {
 		t.Fatal("expected error for corrupted ciphertext")
 	}
 }
+
+func TestReEncrypt_RoundTrip(t *testing.T) {
+	key1 := make([]byte, 32)
+	key2 := make([]byte, 32)
+	rand.Read(key1)
+	rand.Read(key2)
+
+	oldEnc, _ := New(&StaticKeyProvider{Key: key1})
+	newEnc, _ := New(&StaticKeyProvider{Key: key2})
+
+	original := "sensitive-pii-data"
+	ct, err := oldEnc.Encrypt(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reEncrypted, err := ReEncrypt(oldEnc, newEnc, ct)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Old key should NOT be able to decrypt the re-encrypted value.
+	if _, err := oldEnc.Decrypt(reEncrypted); err == nil {
+		t.Fatal("expected old key to fail on re-encrypted value")
+	}
+
+	// New key should decrypt successfully.
+	pt, err := newEnc.Decrypt(reEncrypted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pt != original {
+		t.Fatalf("got %q, want %q", pt, original)
+	}
+}
+
+func TestReEncrypt_PlaintextFallbackMigration(t *testing.T) {
+	oldKey := make([]byte, 32)
+	newKey := make([]byte, 32)
+	rand.Read(oldKey)
+	rand.Read(newKey)
+
+	// Simulate legacy plaintext with fallback.
+	oldEnc, _ := New(&StaticKeyProvider{Key: oldKey}, WithPlaintextFallback())
+	newEnc, _ := New(&StaticKeyProvider{Key: newKey})
+
+	legacyPlaintext := "legacy-value"
+	reEncrypted, err := ReEncrypt(oldEnc, newEnc, legacyPlaintext)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// New key decrypts the now-properly-encrypted value.
+	pt, err := newEnc.Decrypt(reEncrypted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pt != legacyPlaintext {
+		t.Fatalf("got %q, want %q", pt, legacyPlaintext)
+	}
+
+	// Verify it's actually encrypted with a header.
+	if len(reEncrypted) < len(headerV1) || reEncrypted[:len(headerV1)] != headerV1 {
+		t.Fatal("re-encrypted legacy value should have the header")
+	}
+}
+
+func TestReEncrypt_WrongOldKey(t *testing.T) {
+	key1 := make([]byte, 32)
+	key2 := make([]byte, 32)
+	key3 := make([]byte, 32)
+	rand.Read(key1)
+	rand.Read(key2)
+	rand.Read(key3)
+
+	oldEnc, _ := New(&StaticKeyProvider{Key: key1})
+	wrongOld, _ := New(&StaticKeyProvider{Key: key2})
+	newEnc, _ := New(&StaticKeyProvider{Key: key3})
+
+	ct, err := oldEnc.Encrypt("secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ReEncrypt(wrongOld, newEnc, ct)
+	if err == nil {
+		t.Fatal("expected error when decrypting with wrong old key")
+	}
+}
+
+func BenchmarkEncrypt_Short(b *testing.B) {
+	key := make([]byte, 32)
+	rand.Read(key)
+	enc, _ := New(&StaticKeyProvider{Key: key})
+	input := "alice@example.com"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		enc.Encrypt(input)
+	}
+}
+
+func BenchmarkDecrypt_Short(b *testing.B) {
+	key := make([]byte, 32)
+	rand.Read(key)
+	enc, _ := New(&StaticKeyProvider{Key: key})
+	ct, _ := enc.Encrypt("alice@example.com")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		enc.Decrypt(ct)
+	}
+}
+
+func BenchmarkEncrypt_Long(b *testing.B) {
+	key := make([]byte, 32)
+	rand.Read(key)
+	enc, _ := New(&StaticKeyProvider{Key: key})
+	input := string(make([]byte, 1000))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		enc.Encrypt(input)
+	}
+}
+
+func BenchmarkDecrypt_Long(b *testing.B) {
+	key := make([]byte, 32)
+	rand.Read(key)
+	enc, _ := New(&StaticKeyProvider{Key: key})
+	ct, _ := enc.Encrypt(string(make([]byte, 1000)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		enc.Decrypt(ct)
+	}
+}
+
+func BenchmarkReEncrypt(b *testing.B) {
+	key1 := make([]byte, 32)
+	key2 := make([]byte, 32)
+	rand.Read(key1)
+	rand.Read(key2)
+	oldEnc, _ := New(&StaticKeyProvider{Key: key1})
+	newEnc, _ := New(&StaticKeyProvider{Key: key2})
+	ct, _ := oldEnc.Encrypt("sensitive-pii-data")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ReEncrypt(oldEnc, newEnc, ct)
+	}
+}

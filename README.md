@@ -203,6 +203,45 @@ Use this only while migrating legacy rows. Missing-header values do not receive
 AES-GCM integrity verification, so migrate plaintext rows to encrypted values
 and disable the fallback once the migration is complete.
 
+## Key rotation
+
+`entcrypt.ReEncrypt(old, new, ciphertext)` decrypts with the old key and
+re-encrypts with the new key without exposing the plaintext to the caller.
+This is useful for migration scripts and scheduled key rotation.
+
+```go
+oldEnc, _ := entcrypt.New(&entcrypt.EnvKeyProvider{EnvVar: "OLD_KEY"})
+newEnc, _ := entcrypt.New(&entcrypt.EnvKeyProvider{EnvVar: "NEW_KEY"})
+
+// Re-encrypt all rows for a given entity.
+for _, row := range rows {
+    newCiphertext, err := entcrypt.ReEncrypt(oldEnc, newEnc, row.Email)
+    // ... write newCiphertext back to the database
+}
+```
+
+See [`examples/reencrypt/`](./examples/reencrypt/) for a complete runnable
+example that also covers plaintext-to-encrypted migration with fallback.
+
+## Column sizing
+
+Encrypted output is approximately `1.5 × plaintext_len + 44 bytes` (fixed
+overhead for the `v1:AES-256-GCM:` header and base64 encoding). Plan your
+database columns accordingly:
+
+| Plaintext length | Approximate ciphertext length | Recommended minimum column type |
+|-----------------|-------------------------------|---------------------------------|
+| 50              | 119                           | `VARCHAR(128)`                  |
+| 100             | 194                           | `VARCHAR(256)`                  |
+| 255             | 427                           | `VARCHAR(512)`                  |
+| 500             | 794                           | `VARCHAR(1024)`                 |
+| 1000            | 1544                          | `VARCHAR(2048)` or `TEXT`       |
+
+> [!TIP]
+> When adding encryption to an existing schema, ensure the target column is
+> large enough for the encrypted output, especially if an existing `VARCHAR`
+> constraint was sized for plaintext values.
+
 ## Query limitations
 
 Encrypted fields cannot be queried by plaintext with normal ent predicates.
@@ -224,6 +263,7 @@ Examples are provided in the [`examples/`](./examples/) directory:
 | [`simple`](./examples/simple/) | `entcrypt.Extension{}` with `entc.Generate()` (auto-register) | `go run ./cmd/entc/` |
 | [`noentc`](./examples/noentc/) | Standard `go generate` (manual register) | `go generate ./ent` |
 | [`complex`](./examples/complex/) | Multi-schema `entcrypt.Extension{}` setup with edges and encrypted predicates proof | `go run ./cmd/entc/` |
+| [`reencrypt`](./examples/reencrypt/) | Standalone key rotation and legacy-data migration with `ReEncrypt` | `go run .` |
 
 The simple and noentc examples produce the same runtime behaviour — the
 difference is only in how encrypted fields are registered. The complex example
@@ -282,6 +322,7 @@ sqlite3 ent.db "SELECT email, ssn FROM users;"
 | `entcrypt` | `EncryptedField{}` | Schema annotation for encrypted string fields |
 | `entcrypt` | `Extension{}` | entc extension that auto-discovers encrypted fields during codegen |
 | `entcrypt` | `New(provider)` | Creates an `Encrypter` from a key provider |
+| `entcrypt` | `ReEncrypt(old, new, ciphertext)` | Re-encrypts data from one key to another; plaintext stays inside the function |
 | `entcrypt` | `StaticKeyProvider` | Key provider with a static AES key |
 | `entcrypt` | `EnvKeyProvider` | Key provider reading from an env var |
 | `entcrypt` | `WithPlaintextFallback()` | Explicit migration option for legacy plaintext rows |

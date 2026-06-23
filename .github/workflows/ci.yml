@@ -24,12 +24,6 @@ jobs:
             - name: Build library
               run: go build ./...
 
-            - name: Build examples/noentc
-              run: cd examples/noentc && go build ./...
-
-            - name: Build examples/simple
-              run: cd examples/simple && go build ./...
-
     lint:
         name: Lint
         runs-on: ubuntu-latest
@@ -46,6 +40,12 @@ jobs:
               uses: golangci/golangci-lint-action@v9
               with:
                   version: v2.11.0
+
+            - name: Install staticcheck
+              run: go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+
+            - name: Run staticcheck
+              run: staticcheck ./...
 
     security:
         name: Security Scan
@@ -66,7 +66,7 @@ jobs:
 
             - name: Run Gosec Security Scanner
               run: |
-                  "$(go env GOPATH)/bin/gosec" -fmt text ./...
+                  "$(go env GOPATH)/bin/gosec" -exclude-dir=pkg/mod -exclude-dir=examples/pkg/mod -fmt text ./...
 
     govulncheck:
         name: Govulncheck
@@ -101,11 +101,6 @@ jobs:
             - name: Test
               run: go test -v -shuffle=on -race -count=1 ./...
 
-            - name: Build example
-              run: |
-                  cd examples/noentc && go build ./...
-                  cd ../simple && go build ./...
-
     coverage:
         name: Coverage
         runs-on: ubuntu-latest
@@ -126,10 +121,3 @@ jobs:
               with:
                   file: coverage.out
                   fail_ci_error: false
-
-            - name: Generate check
-              run: |
-                  cd examples/noentc
-                  go generate ./ent
-                  git diff --exit-code -- 'ent/entcrypt_gen.go' || \
-                    echo "❌ entcrypt_gen.go is out of date — run 'go generate ./ent'"

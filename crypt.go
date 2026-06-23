@@ -82,3 +82,22 @@ func cloneBytes(in []byte) []byte {
 	copy(out, in)
 	return out
 }
+
+// ReEncrypt decrypts ciphertext with old and re-encrypts it with new.
+// The plaintext exists only transiently in local variables and is never
+// exposed to the caller, making this safe for key-rotation migration scripts.
+//
+// This is particularly useful with WithPlaintextFallback on the old
+// Encrypter: legacy plaintext values (without the v1:AES-256-GCM: header)
+// pass through old.Decrypt and become properly encrypted by new.Encrypt.
+func ReEncrypt(old, new *Encrypter, ciphertext string) (string, error) {
+	pt, err := old.Decrypt(ciphertext)
+	if err != nil {
+		return "", fmt.Errorf("entcrypt: re-encrypt (decrypt): %w", err)
+	}
+	ct, err := new.Encrypt(pt)
+	if err != nil {
+		return "", fmt.Errorf("entcrypt: re-encrypt (encrypt): %w", err)
+	}
+	return ct, nil
+}

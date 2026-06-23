@@ -1,0 +1,53 @@
+name: Examples
+
+on:
+    push:
+        branches: [ main ]
+    pull_request:
+        branches: [ main ]
+
+permissions: read-all
+
+jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Set up Go
+              uses: actions/setup-go@v6
+              with:
+                  go-version: "1.26"
+                  cache: true
+
+            - name: Build examples/noentc
+              run: cd examples/noentc && go build ./...
+
+            - name: Build examples/simple
+              run: cd examples/simple && go build ./...
+
+            - name: Build examples/complex
+              run: cd examples/complex && go build ./...
+
+            - name: Build examples/reencrypt
+              run: cd examples/reencrypt && go build ./...
+
+    codegen:
+        name: Codegen
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Set up Go
+              uses: actions/setup-go@v6
+              with:
+                  go-version: "1.26"
+                  cache: true
+
+            - name: Check generated code is up to date
+              run: |
+                  cd examples/noentc
+                  go generate ./ent
+                  git diff --exit-code -- 'ent/entcrypt_gen.go' || \
+                    echo "❌ entcrypt_gen.go is out of date — run 'go generate ./ent'"
